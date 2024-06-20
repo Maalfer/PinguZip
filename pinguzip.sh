@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Definir colores usando códigos ANSI
-BLUE="\033[38;5;39m"   # Azul fosforito
-YELLOW="\033[38;5;226m"  # Amarillo fosforito
+# Colores chingones usando códigos ANSI
+BLUE="\033[38;5;39m"   # Azul fosforito molón
+YELLOW="\033[38;5;226m"  # Amarillo fosforito chingón
 RESET="\033[0m"  
 
 echo -e "
@@ -17,7 +17,7 @@ echo -e "
 ${BLUE}[+]${RESET} - ${YELLOW}Made with love by The Penguin of Mario (El Pingüino de Mario)${RESET}
 "
 
-sleep 4
+sleep 4 # 4 segundos de espera para contemplar la grandeza del banner.
 
 if [ "$#" -ne 2 ]; then
     echo "Uso: $0 archivo.zip diccionario.txt"
