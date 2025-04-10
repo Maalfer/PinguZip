@@ -18,7 +18,7 @@ show_banner() {
 ██         ██  ██   ███ ██    ██  ██     ██  ██       ██  ██        
 ██        ████ ██    ██  ██████    ███████  ████████ ████ ██        
 
-${BLUE}[+]${RESET} - ${YELLOW}Made with love by The Penguin of Mario (El Pingüino de Mario)${RESET}
+${BLUE}[+]${RESET} - ${YELLOW}Made with love by The Penguin of Mario (El Pingüino de Mario & Santitub)${RESET}
 "
     sleep 2
 }
