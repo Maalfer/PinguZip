@@ -1,29 +1,29 @@
 #!/bin/bash
 
-# Configuración avanzada de colores ANSI
+# ----------- CONFIGURACIÓN DE COLORES -----------
 BLUE="\033[38;5;39m"
 YELLOW="\033[38;5;226m"
 GREEN="\033[38;5;46m"
 RED="\033[38;5;196m"
 RESET="\033[0m"
 
-# Banner ASCII mejorado
+# ----------- BANNER -----------
 show_banner() {
     echo -e "
-████████  ████ ██    ██  ██████   ██     ██ ████████ ████ ████████  
-██     ██  ██  ███   ██ ██    ██  ██     ██     ██   ██  ██     ██ 
-██     ██  ██  ████  ██ ██        ██     ██    ██    ██  ██     ██ 
-████████   ██  ██ ██ ██ ██   ████ ██     ██   ██     ██  ████████  
-██         ██  ██  ████ ██    ██  ██     ██  ██      ██  ██        
-██         ██  ██   ███ ██    ██  ██     ██ ██       ██  ██        
-██        ████ ██    ██  ██████    ███████  ████████ ████ ██        
+████████  ████ ██    ██  ██████   ██      ██ ████████ ████ ████████
+██     ██  ██  ███   ██ ██    ██  ██      ██      ██   ██  ██     ██
+██     ██  ██  ████  ██ ██        ██      ██     ██    ██  ██     ██
+████████   ██  ██ ██ ██ ██   ████ ██      ██    ██     ██  ████████
+██         ██  ██  ████ ██     ██ ██      ██   ██      ██  ██
+██         ██  ██   ███ ██     ██ ██      ██  ██       ██  ██
+██        ████ ██    ██  ██████    ████████  ████████ ████ ██
 
-${BLUE}[+]${RESET} - ${YELLOW}Made with love by The Penguin of Mario (El Pingüino de Mario & Santitub)${RESET}
+${BLUE}[+]${RESET} - ${YELLOW}Made with love by The Penguin of Mario${RESET}
 "
-    sleep 2
+    sleep 1
 }
 
-# Funciones de variación de contraseñas
+# ----------- VARIACIONES DE CONTRASEÑAS -----------
 generate_variations() {
     local pass="$1"
     echo "$pass"
@@ -35,7 +35,7 @@ generate_variations() {
     echo "${pass:0:1}${pass:1}"
 }
 
-# Configuración multi-plataforma
+# ----------- MULTIPLATAFORMA -----------
 setup_environment() {
     case "$(uname -s)" in
         Darwin*) STAT_CMD="stat -f %z"; SHASUM="shasum -a 256" ;;
@@ -44,7 +44,7 @@ setup_environment() {
     esac
 }
 
-# Manejo de señales para interrupción limpia
+# ----------- MANEJO DE SEÑALES -----------
 handle_interrupt() {
     echo -e "\n${YELLOW}[!] Interrupción detectada. Mostrando resumen...${RESET}"
     show_summary "${RED}INTERRUPCIÓN${RESET}"
@@ -52,16 +52,15 @@ handle_interrupt() {
     exit 1
 }
 
-# Limpieza de recursos temporales
+# ----------- LIMPIEZA -----------
 cleanup() {
     [[ -f "$ZIP_CACHE" ]] && rm -f "$ZIP_CACHE"
 }
 
-# Mostrar resumen de ejecución
+# ----------- RESUMEN -----------
 show_summary() {
     local end_time=$(date +%s)
     local total_time=$((end_time - START_TIME))
-
     echo -e "\n${BLUE}=== RESUMEN DE EJECUCIÓN ==="
     echo -e "Archivo analizado: ${YELLOW}$ZIPFILE${BLUE}"
     echo -e "Diccionario usado: ${YELLOW}$WORDLIST${BLUE}"
@@ -74,36 +73,52 @@ show_summary() {
     echo -e "Estado final: ${1}${RESET}"
 }
 
-# Validación de dependencias
+# ----------- DEPENDENCIAS -----------
 check_dependencies() {
     local missing=()
-    for cmd in unzip; do
-        if ! command -v $cmd &> /dev/null; then
-            missing+=("$cmd")
-        fi
-    done
+    # Herramienta zip preferente
+    if command -v 7z &> /dev/null; then
+        ZIP_TOOL="7z"
+        ZIP_TEST_CMD="7z t -p{password} -y {zipfile} &>/dev/null"
+    elif command -v unzip &> /dev/null; then
+        ZIP_TOOL="unzip"
+        ZIP_TEST_CMD="unzip -t -P {password} {zipfile} &>/dev/null"
+    else
+        missing+=("7z o unzip")
+    fi
 
     if [[ ${#missing[@]} -gt 0 ]]; then
         echo -e "${RED}Faltan dependencias críticas:${RESET}"
-        for m in "${missing[@]}"; do
-            echo -e " - ${YELLOW}$m${RESET}"
-        done
+        for m in "${missing[@]}"; do echo -e " - ${YELLOW}$m${RESET}"; done
         exit 1
     fi
+
+    echo -e "${BLUE}[+]${RESET} Usando herramienta: ${YELLOW}$ZIP_TOOL${RESET}"
 }
 
-# Configuración inicial
+# ----------- FUNCIÓN GENÉRICA DE PRUEBA -----------
+test_password() {
+    local zipfile="$1" password="$2"
+    local cmd="${ZIP_TEST_CMD//\{password\}/"$password"}"
+    cmd="${cmd//\{zipfile\}/"$zipfile"}"
+    eval "$cmd"
+}
+
+# ----------- CONFIG INICIAL -----------
 trap handle_interrupt SIGINT
 VERBOSE=0
 ZIP_CACHE=""
 ENABLE_VARIATIONS=0
+START_TIME=0
+ATTEMPT_COUNT=0
+TOTAL_LINES=0
 
-# ─── INICIO DEL SCRIPT ───
+# ----------- INICIO -----------
 show_banner
 check_dependencies
 setup_environment
 
-# Manejo de parámetros
+# ----------- ARGUMENTOS -----------
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         -v) VERBOSE=1; shift ;;
@@ -123,44 +138,31 @@ WORDLIST="$2"
 [[ ! -f "$ZIPFILE" ]] && echo -e "${RED}El archivo ZIP no existe${RESET}" && exit 1
 [[ ! -f "$WORDLIST" ]] && echo -e "${RED}El diccionario no existe${RESET}" && exit 1
 
-# Preguntar si se quieren usar variaciones
+# ----------- VARIACIONES -----------
 read -rp "$(echo -e "${BLUE}[?]${RESET} ¿Deseas probar variaciones de contraseñas? (s/n): ")" USE_VARIATIONS
 USE_VARIATIONS=${USE_VARIATIONS,,}
 [[ "$USE_VARIATIONS" =~ ^(s|si|y|yes)$ ]] && ENABLE_VARIATIONS=1
 
-# Detección de cifrado AES
-if unzip -v "$ZIPFILE" | grep -q "AES"; then
-    echo -e "${YELLOW}[!] Advertencia: Archivo usa cifrado AES (más seguro)${RESET}"
-fi
-
-# Cache en RAM
+# ----------- CACHE RAM -----------
 ZIP_CACHE="/dev/shm/${ZIPFILE##*/}"
 cp "$ZIPFILE" "$ZIP_CACHE" && trap "cleanup" EXIT || exit 1
 
-# Estadísticas
+# ----------- ESTADÍSTICAS -----------
 START_TIME=$(date +%s)
-ATTEMPT_COUNT=0
 TOTAL_LINES=$(wc -l < "$WORDLIST")
 [[ $VERBOSE -ge 1 ]] && echo -e "${BLUE}Iniciando proceso con ${YELLOW}$TOTAL_LINES${BLUE} entradas base${RESET}"
 
-# ─── Único bucle para original + variaciones ───
+# ----------- ATAQUE -----------
 while IFS= read -r base_password || [[ -n "$base_password" ]]; do
     password_list=("$base_password")
-
-    if [[ $ENABLE_VARIATIONS -eq 1 ]]; then
-        mapfile -t variations < <(generate_variations "$base_password")
-        password_list+=("${variations[@]}")
-    fi
+    [[ $ENABLE_VARIATIONS -eq 1 ]] && mapfile -t variations < <(generate_variations "$base_password") && password_list+=("${variations[@]}")
 
     for password in "${password_list[@]}"; do
         ((ATTEMPT_COUNT++))
 
-        if [[ $VERBOSE -ge 2 ]]; then
-            echo -ne "${YELLOW}Probando contraseña ${ATTEMPT_COUNT}: "
-            echo -e "${password:0:12}$([[ ${#password} -gt 12 ]] && echo '...')${RESET}"
-        fi
+        [[ $VERBOSE -ge 2 ]] && echo -e "${YELLOW}Probando (${ATTEMPT_COUNT}): ${password:0:12}$([[ ${#password} -gt 12 ]] && echo '...')${RESET}"
 
-        if unzip -t -P "$password" "$ZIP_CACHE" &> /dev/null; then
+        if test_password "$ZIP_CACHE" "$password"; then
             echo -e "\n\n${GREEN}[+] ¡Contraseña encontrada!: ${YELLOW}$password${RESET}"
             show_summary "${GREEN}ÉXITO${RESET}"
             exit 0
@@ -169,13 +171,11 @@ while IFS= read -r base_password || [[ -n "$base_password" ]]; do
         if [[ $((ATTEMPT_COUNT % 100)) -eq 0 ]] || [[ $VERBOSE -ge 1 ]]; then
             elapsed=$(( $(date +%s) - START_TIME ))
             speed=$(( ATTEMPT_COUNT / (elapsed + 1) ))
-            echo -ne "${BLUE}Progreso: ${YELLOW}$ATTEMPT_COUNT${BLUE} intentos | "
-            echo -ne "Velocidad: ${YELLOW}$speed p/s${BLUE} | "
-            echo -ne "Tiempo: ${YELLOW}${elapsed}s${RESET}\r"
+            echo -ne "${BLUE}Progreso: ${YELLOW}$ATTEMPT_COUNT${BLUE} intentos | Velocidad: ${YELLOW}$speed p/s${BLUE} | Tiempo: ${YELLOW}${elapsed}s${RESET}\r"
         fi
     done
 done < "$WORDLIST"
 
-# Si llega aquí = fallo
+# ----------- FIN -----------
 show_summary "${RED}FRACASO${RESET}"
 exit 1
